@@ -1,2 +1,2 @@
 # My_Ai_agent
-AI Agent built using Retrieval-Augmented Generation (RAG) with tool execution, persistent memory, and a custom-trained GPT-style transformer model.
+Transformer-based AI Agent using Retrieval-Augmented Generation (RAG), vector search, tool execution, persistent memory, and a custom-trained GPT-style model.
