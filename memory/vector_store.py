@@ -45,13 +45,41 @@ def memorize_information(text: str, source: str = "user_conversation", user_id: 
     except Exception as e:
         return f"Failed to save to memory: {e}"
 
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
+
 @tool("recall_information", args_schema=RecallInput)
 def recall_information(query: str, user_id: str = "default_user") -> str:
-    """Searches long-term memory for information relating to the query."""
+    """Searches long-term memory using true Hybrid Search (Dense Embeddings + BM25 Keyword Matching)."""
     try:
-        # Point 3: Metadata filtering (ensures agent only recalls memories for the matching user_id)
         filter_dict = {"user_id": user_id}
-        results = vector_store.similarity_search(query, k=3, filter=filter_dict)
+        
+        # 1. Fetch Dense Retriever (Chroma Vector Similarity)
+        chroma_retriever = vector_store.as_retriever(search_kwargs={"k": 3, "filter": filter_dict})
+        
+        # 2. Setup Keyword Retriever (BM25)
+        # Fetch only documents belonging to this active user to build the BM25 index securely
+        all_user_data = vector_store.get(where=filter_dict)
+        docs = all_user_data.get("documents", [])
+        
+        if not docs:
+            return f"No relevant information found in memory for user {user_id}."
+            
+        langchain_docs = [
+            Document(page_content=doc, metadata=meta) 
+            for doc, meta in zip(docs, all_user_data["metadatas"])
+        ]
+        
+        bm25_retriever = BM25Retriever.from_documents(langchain_docs)
+        bm25_retriever.k = 3
+        
+        # 3. Hybrid Ensemble (50% Semantic Meaning, 50% Exact Keyword Overlap)
+        ensemble = EnsembleRetriever(
+            retrievers=[chroma_retriever, bm25_retriever], 
+            weights=[0.5, 0.5]
+        )
+        
+        results = ensemble.invoke(query)
         
         if not results:
             return f"No relevant information found in memory for user {user_id}."

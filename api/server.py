@@ -4,13 +4,23 @@ from pydantic import BaseModel
 from core.graph import build_graph
 from langchain_core.messages import HumanMessage
 import json
+import asyncio
+import logging
+from prometheus_fastapi_instrumentator import Instrumentator
+
+# Configure Logging
+logger = logging.getLogger("uvicorn.error")
 
 # Initialize the API Application
 app = FastAPI(
-    title="AI Agent Enterprise API",
-    description="Backend API for the Master AI Agent with Streaming and Persistence",
+    title="Enterprise AI Agent API",
+    description="A robust backend API for communicating with the LangGraph state machine.",
     version="2.0.0"
 )
+
+# Enterprise Phase 8: Point 8 - Monitoring Dashboard Metrics
+# This auto-generates a /metrics endpoint that Prometheus can scrape!
+Instrumentator().instrument(app).expose(app)
 
 # Compile the agent graph once
 agent_graph = build_graph()

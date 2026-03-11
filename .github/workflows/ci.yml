@@ -1,0 +1,40 @@
+name: Enterprise Agent CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test_and_evaluate:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Dependencies Fast
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+
+    - name: Run Pytest Suites
+      # Since tests require OpenAI keys to run correctly via LLM-as-a-judge, 
+      # we map repository secrets here to prevent failing evaluations!
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+        LANGCHAIN_TRACING_V2: true
+      run: |
+        pytest tests/
