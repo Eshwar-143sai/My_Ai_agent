@@ -17,32 +17,13 @@ set_llm_cache(InMemoryCache())
 # Configure basic logging for the Safety System
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - SAFETY_SYSTEM - %(message)s")
 
+from core.llm_manager import get_llm_with_fallbacks
+
 # Fetch available tools dynamically from the Tool Manager
 AVAILABLE_TOOLS = tool_manager.get_all_tools()
 
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
-
-# Enterprise Phase 8: Multi-Provider Fallback Logic!
-primary_model_name = settings.llm_model_name
-primary_model = ChatOpenAI(model=primary_model_name, temperature=settings.llm_temperature)
-
-fallbacks = []
-# If Anthropic API key is provided, register Claude as the first fallback for 100% uptime
-if settings.anthropic_api_key:
-    fallbacks.append(ChatAnthropic(model="claude-3-haiku-20240307", temperature=settings.llm_temperature))
-
-# If the user is using an expensive primary model, add a cheaper fallback
-if primary_model_name != "gpt-4o-mini" and settings.openai_api_key:
-    fallbacks.append(ChatOpenAI(model="gpt-4o-mini", temperature=settings.llm_temperature))
-
-# Bind fallbacks to the primary LLM
-if fallbacks:
-    model = primary_model.with_fallbacks(fallbacks)
-else:
-    model = primary_model
-
 # Bind the dynamic tools to our (potentially fallback-wrapped) LLM
+model = get_llm_with_fallbacks()
 model_with_tools = model.bind_tools(AVAILABLE_TOOLS)
 
 def build_graph():

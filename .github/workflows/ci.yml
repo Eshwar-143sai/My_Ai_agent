@@ -3,6 +3,8 @@ name: Enterprise Agent CI/CD
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches: [ "main" ]
 
@@ -12,7 +14,7 @@ jobs:
     
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.10"]
 
     steps:
     - name: Checkout Code Repository
@@ -30,11 +32,31 @@ jobs:
         pip install pytest pytest-asyncio
 
     - name: Run Pytest Suites
-      # Since tests require OpenAI keys to run correctly via LLM-as-a-judge, 
-      # we map repository secrets here to prevent failing evaluations!
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
         LANGCHAIN_TRACING_V2: true
       run: |
         pytest tests/
+
+  build_and_push:
+    needs: test_and_evaluate
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
+      
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: mydockerhub/ai_agent:${{ github.ref_name }}, mydockerhub/ai_agent:latest

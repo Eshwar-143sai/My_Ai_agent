@@ -7,13 +7,28 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount the ChromaDB data natively so memory persists across container restarts
       - ./chroma_data:/app/chroma_data
-      # Mount our code for hot-reloading (optional for dev)
       - .:/app
     env_file:
       - .env
-    # Restart automatically if the server crashes
+    depends_on:
+      redis_cache:
+        condition: service_healthy
     restart: unless-stopped
-    
-    # We can add Redis, Prometheus, Postgres, etc., here later for Points 6 and 8.
+
+  redis_cache:
+    image: redis:alpine
+    container_name: ai_redis_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:

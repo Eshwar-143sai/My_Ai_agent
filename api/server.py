@@ -30,15 +30,21 @@ class ChatInput(BaseModel):
     user_id: str
     message: str
 
+from api.database import init_db, insert_feedback
+
+@app.on_event("startup")
+def startup_db():
+    init_db()
+    logger.info("SQLite Feedback Database initialized.")
+
 # Application State for the Graph (This schema is not directly used as an endpoint input/output, but for internal representation if needed)
 class RequestState(BaseModel):
     messages: list
 
-# Feedback Input Schema (Phase 8, Point 3)
+# Feedback Input Schema (Phase 8, Task 3 Refinement)
 class FeedbackInput(BaseModel):
-    user_id: str
-    message_id: str  # In the future, every generation gets a unique ID
-    rating: int      # e.g., 1 (poor) to 5 (excellent)
+    conversation_id: str
+    rating: int      # 1 (poor) to 5 (excellent)
     comment: str = None
 
 class ChatResponse(BaseModel):
@@ -53,10 +59,11 @@ def read_root():
 async def submit_feedback(feedback: FeedbackInput):
     """
     RLHF / User Feedback Loop.
-    For now, we log this asynchronously. Later, this feeds into PostgreSQL or LangSmith datasets.
+    Stores the conversation rating into a SQLite db for later LLM fine-tuning analysis.
     """
-    logger.info(f"FEEDBACK RECIEVED: User {feedback.user_id} rated msg '{feedback.message_id}' a {feedback.rating}/5. Comment: {feedback.comment}")
-    return {"status": "success", "message": "Feedback securely recorded for evaluation."}
+    insert_feedback(feedback.conversation_id, feedback.rating, feedback.comment)
+    logger.info(f"FEEDBACK RECIEVED: Conv '{feedback.conversation_id}' rated {feedback.rating}/5. Comment: {feedback.comment}")
+    return {"status": "success", "message": "Feedback securely recorded in SQLite database."}
 
 @app.post("/chat", response_model=ChatResponse)
 def execute_chat(request: ChatInput): # Changed ChatRequest to ChatInput
