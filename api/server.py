@@ -15,9 +15,21 @@ app = FastAPI(
 # Compile the agent graph once
 agent_graph = build_graph()
 
-class ChatRequest(BaseModel):
-    user_id: str = "default_user"
+# Input Schema for the standard chat
+class ChatInput(BaseModel):
+    user_id: str
     message: str
+
+# Application State for the Graph (This schema is not directly used as an endpoint input/output, but for internal representation if needed)
+class RequestState(BaseModel):
+    messages: list
+
+# Feedback Input Schema (Phase 8, Point 3)
+class FeedbackInput(BaseModel):
+    user_id: str
+    message_id: str  # In the future, every generation gets a unique ID
+    rating: int      # e.g., 1 (poor) to 5 (excellent)
+    comment: str = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -27,8 +39,17 @@ class ChatResponse(BaseModel):
 def read_root():
     return {"status": "AI Agent Enterprise API is running!"}
 
+@app.post("/feedback")
+async def submit_feedback(feedback: FeedbackInput):
+    """
+    RLHF / User Feedback Loop.
+    For now, we log this asynchronously. Later, this feeds into PostgreSQL or LangSmith datasets.
+    """
+    logger.info(f"FEEDBACK RECIEVED: User {feedback.user_id} rated msg '{feedback.message_id}' a {feedback.rating}/5. Comment: {feedback.comment}")
+    return {"status": "success", "message": "Feedback securely recorded for evaluation."}
+
 @app.post("/chat", response_model=ChatResponse)
-def execute_chat(request: ChatRequest):
+def execute_chat(request: ChatInput): # Changed ChatRequest to ChatInput
     """
     Standard endpoint (Enterprise Point 9: Session Management).
     Uses the user_id as a thread_id to persist memory across calls in the Graph checkpointer.

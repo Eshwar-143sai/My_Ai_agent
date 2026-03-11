@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  agent_api:
+    build: .
+    container_name: ai_agent_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the ChromaDB data natively so memory persists across container restarts
+      - ./chroma_data:/app/chroma_data
+      # Mount our code for hot-reloading (optional for dev)
+      - .:/app
+    env_file:
+      - .env
+    # Restart automatically if the server crashes
+    restart: unless-stopped
+    
+    # We can add Redis, Prometheus, Postgres, etc., here later for Points 6 and 8.
