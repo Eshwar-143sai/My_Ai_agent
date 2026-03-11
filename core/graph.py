@@ -10,7 +10,7 @@ from core.tool_manager import tool_manager
 from core.prompts import agent_prompt
 
 # Phase 7: Enable InMemory Caching for the LLM globally
-from langchain.globals import set_llm_cache
+from langchain_core.globals import set_llm_cache
 from langchain_core.caches import InMemoryCache
 set_llm_cache(InMemoryCache())
 
