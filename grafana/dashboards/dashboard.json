@@ -1,0 +1,25 @@
+{
+  "title": "Enterprise AI Agent Metrics",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "FastAPI Request Rate",
+      "targets": [
+        {
+          "expr": "rate(fastapi_requests_total[1m])",
+          "legendFormat": "{{method}} {{path}} ({{status}})"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "FastAPI Response Latency",
+      "targets": [
+        {
+          "expr": "rate(fastapi_request_duration_seconds_sum[1m]) / rate(fastapi_requests_total[1m])",
+          "legendFormat": "{{method}} {{path}}"
+        }
+      ]
+    }
+  ]
+}

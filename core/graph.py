@@ -28,7 +28,7 @@ model_with_tools = model.bind_tools(AVAILABLE_TOOLS)
 
 def build_graph():
     # Load LLM dynamically based on user config
-    model = get_llm()
+    model = get_llm_with_fallbacks()
     
     # Bind tools to the model
     model_with_tools = model.bind_tools(AVAILABLE_TOOLS)

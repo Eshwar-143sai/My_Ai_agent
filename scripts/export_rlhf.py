@@ -1,36 +1,48 @@
+import sqlite3
 import json
-import sys
+import os
 
-# Enterprise Phase 8: Point 10 - Fine-Tuning Prep
-def extract_high_rated_interactions(database_connection=None):
+# Connect to the SQLite Database created by FastAPI
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "feedback.db")
+
+def export_5_star_conversations():
     """
-    In a real system, you would query PostgreSQL for queries submitted to the `/feedback` endpoint
-    where `rating == 5`. Then this script formats the Request and the Agent's Response 
-    into standard OpenAI JSONL format for fine-tuning a small bespoke model!
+    Export all 5-star rated conversations into an OpenAI JSONL format for fine-tuning.
     """
-    print("Gathering gold-standard RLHF conversations from database...")
+    if not os.path.exists(DB_PATH):
+        print(f"Database not found at {DB_PATH}")
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
     
-    # Mock data that would normally be fetched from the DB
-    mock_high_quality_data = [
-        {"user_prompt": "What's the weather like?", "agent_response": "Searching live web... It is currently 72°F and sunny."},
-        {"user_prompt": "Calculate my taxes (150 * 5).", "agent_response": "Calculated value using tools: 750."}
-    ]
-
-    count = 0
-    with open("fine_tuning_dataset.jsonl", "w") as f:
-        for row in mock_high_quality_data:
-            # Format required by OpenAI Fine-Tuning API: {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
-            entry = {
+    # Query for perfect scores (RLHF positive reinforcement)
+    cursor.execute("SELECT conversation_id, rating, comment FROM feedback WHERE rating = 5")
+    rows = cursor.fetchall()
+    
+    if not rows:
+        print("No 5-star ratings found yet. Keep collecting feedback!")
+        return
+        
+    output_file = "fine_tuning_data.jsonl"
+    
+    # Normally you'd join this with the actual message logs from LangGraph's checkpointer
+    # For this script, we'll generate the structure
+    with open(output_file, 'w') as f:
+        for row in rows:
+            conv_id, rating, comment = row
+            # Mocking the conversation extraction. In reality, query the LangGraph state.
+            record = {
                 "messages": [
-                    {"role": "user", "content": row["user_prompt"]},
-                    {"role": "assistant", "content": row["agent_response"]}
+                    {"role": "system", "content": "You are a highly capable Enterprise AI Agent."},
+                    {"role": "user", "content": f"User prompt from {conv_id}"},
+                    {"role": "assistant", "content": f"Ideal response associated with {conv_id}. User thought: {comment}"}
                 ]
             }
-            f.write(json.dumps(entry) + "\n")
-            count += 1
+            f.write(json.dumps(record) + "\n")
             
-    print(f"Generated 'fine_tuning_dataset.jsonl' with {count} perfect interactions!")
-    print("You can upload this directly to OpenAI: https://platform.openai.com/finetune")
+    print(f"Exported {len(rows)} 5-star conversations to {output_file} for fine-tuning.")
+    conn.close()
 
 if __name__ == "__main__":
-    extract_high_rated_interactions()
+    export_5_star_conversations()

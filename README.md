@@ -1,65 +1,79 @@
-# My AI Agent 🤖
+# My AI Agent 🤖 Enterprise Edition
 
-A modular, multi-capable AI assistant built with **LangGraph** and **Python**.
-This agent uses a state-graph architecture (Reason & Act) to orchestrate LLM intelligence with real-world tool execution.
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.103.2-009688.svg)
+![LangGraph](https://img.shields.io/badge/LangGraph-State_Machine-orange.svg)
+![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg)
+
+A modular, multi-capable, and production-ready AI assistant built with **LangGraph** and **Python FastApi**. 
+
+![Demo GIF](https://via.placeholder.com/800x400?text=Agent+Demonstration+GIF+Placeholder)
 
 ## 🚀 Features
 
-*   **Stateful Memory:** Remembers conversation history throughout the session using LangGraph's `AgentState`.
-*   **Tool Calling:** Automatically routes to specialized tools when required (e.g., performing complex math calculations).
-*   **Dynamic Routing:** The LLM acts as the central router, deciding whether to answer directly or execute code based on the user's prompt.
-*   **Command Line Interface:** A clean built-in terminal loop for easy communication.
+*   **Production API:** Robust FastAPI backend with standard `/chat`, streaming `/chat/stream`, and `/feedback` endpoints.
+*   **Stateful Memory:** Persists conversation threads using LangGraph's Checkpointer and saves contextual facts to ChromaDB.
+*   **Dynamic Tools:** Includes Web Search, Python Sandbox, Calculator, and advanced Planner routing.
+*   **Telemetry:** Built-in Prometheus `/metrics` endpoint with ready-to-deploy Grafana dashboards.
+*   **Safety Layer:** Custom graph node intercepts and validates LLM generation before responding.
 
 ## 🛠️ Architecture
 
-*   **[LangGraph](https://langchain-ai.github.io/langgraph/):** Orchestrates the node-based workflow (`call_model` node and `tools` node).
-*   **[LangChain](https://python.langchain.com/):** Provides the underlying abstractions for LLMs and Tools.
-*   **LLM Provider:** Powered by OpenAI (`gpt-4o-mini`).
+See our full [Architecture Flowchart](ARCHITECTURE.md) for a detailed look at how the LangGraph nodes communicate.
 
 ## 📦 Project Structure
 
 ```text
-ai_agent/
-│
-├── core/
-│   └── graph.py          # The core LangGraph state machine logic
-├── tools/
-│   └── calculator.py     # Custom tool definitions
-├── main.py               # The CLI execution loop
-├── architecture_plan.md  # Detailed explanation of how the graph works
-└── .env                  # (Hidden) API Key configuration
+My_Ai_agent/
+├── api/              # FastAPI server and HTTP endpoints
+├── core/             # LangGraph state machine, config, tools manager
+├── memory/           # ChromaDB Semantic chunking and vector retrieval
+├── tools/            # Python functionality (Calculator, Code Exec, Web, Planner)
+├── tests/            # Pytest test suites
+├── grafana/          # Telemetry dashboard definitions
+└── main.py           # CLI Loop
 ```
 
 ## 🚀 Getting Started
 
-### 1. Requirements
-Ensure you have Python 3.10+ installed.
+Ensure you have Python 3.10+ and optionally Docker installed.
 
-### 2. Setup
+### 1. Setup
 
-Clone the repository and create a virtual environment:
+Clone and install dependencies via pip:
 ```bash
 git clone https://github.com/Eshwar-143sai/My_Ai_agent.git
 cd My_Ai_agent
 python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Activate the virtual environment:
-*   **Windows:** `.\venv\Scripts\activate`
-*   **Mac/Linux:** `source venv/bin/activate`
-
-Install dependencies:
-```bash
-pip install langgraph langchain langchain-openai python-dotenv
-```
-
-### 3. Configuration
-Create a `.env` file in the root directory and add your OpenAI API key:
+### 2. Configuration
+Create a `.env` file in the root directory:
 ```env
 OPENAI_API_KEY=your_api_key_here
+TAVILY_API_KEY=your_tavily_key
 ```
 
-### 4. Run the Agent
+### 3. Run the Agent Server!
 ```bash
-python main.py
+uvicorn api.server:app --reload
+```
+You can now access the Swagger Documentation at `http://localhost:8000/docs`.
+
+### cURL Examples
+
+**Standard Chat:**
+```bash
+curl -X POST "http://localhost:8000/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"user_id": "user123", "message": "What is the capital of France?"}'
+```
+
+**Add Feedback:**
+```bash
+curl -X POST "http://localhost:8000/feedback" \
+     -H "Content-Type: application/json" \
+     -d '{"conversation_id": "conv-1", "rating": 5, "comment": "Perfect answer."}'
 ```
